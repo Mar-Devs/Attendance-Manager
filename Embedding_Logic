@@ -1,0 +1,29 @@
+import os
+import numpy as np
+from deepface import DeepFace
+
+# Path to the directory containing images and the output npy file
+image_directory = "C:/Users/marah/OneDrive/Desktop/directory"
+embedding_file = "face_embeddings.npy"
+
+# Function to generate embeddings and save them to a .npy file
+def create_embeddings(image_directory, embedding_file):
+    embeddings = {}
+    for filename in os.listdir(image_directory):
+        if filename.endswith(('.png', '.jpeg', '.jpg')):
+            file_path = os.path.join(image_directory, filename)
+            try:
+                print(f"Processing {filename}...")
+                embedding = DeepFace.represent(img_path=file_path, model_name="Facenet", enforce_detection=False)
+                embeddings[filename] = embedding
+            except Exception as e:
+                print(f"Error embedding {filename}: {e}")
+    
+    # Save the embeddings to a .npy file
+    np.save(embedding_file, embeddings)
+    print(f"Embeddings saved to {embedding_file}")
+
+if __name__ == "__main__":
+    create_embeddings(image_directory, embedding_file)
+
+
