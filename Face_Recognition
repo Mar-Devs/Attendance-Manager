@@ -83,9 +83,9 @@ def find_image(camera_input_image):
     global image_directory
     image_directory = os.getcwd()  # Use the current folder for employee images
     for filename in os.listdir(image_directory):
-        file_path = os.path.join(image_directory, filename)
+        file_path = os.path.join(image_directory, filename)      #slowing down the program
 
-        if filename.endswith(('.png', '.jpg', '.jpeg', '.svg')):
+        if filename.endswith(('.png','.jpeg')):
             try:
                 result = DeepFace.verify(camera_input_image, file_path)['verified'] 
                 if result:
@@ -93,7 +93,6 @@ def find_image(camera_input_image):
             except Exception as e:
                 print(f"Error comparing {filename}: {e}")
     return None
-
 
 def check_face(image):
     """
@@ -114,29 +113,46 @@ def check_face(image):
                 current_time = datetime.datetime.now()
                 today_date = current_time.strftime("%d-%m-%Y")  # Format date as day-month-year
 
-                # Check if it's the first scan of the day
-                if first_name not in employee_logs:
-                    employee_logs[first_name] = {'date': today_date, 'last_scan': current_time}
-                    first_scan = True
-                else:
-                    last_scan_time = employee_logs[first_name]['last_scan']
+                # Check if employee has a log for today
+                if first_name in employee_logs:
+                    last_scan_time = employee_logs[first_name].get('last_scan', None)
 
-                    # Skip logging if within cooldown period
-                    if current_time - last_scan_time < COOLDOWN_PERIOD:
+                    # Enforce cooldown period
+                    if last_scan_time and current_time - last_scan_time < COOLDOWN_PERIOD:
                         print(f"Skipping log for {first_name} {last_name}: Cooldown active.")
                         return
 
-                    # Update the last scan time and determine if it's the first scan of the day
-                    first_scan = employee_logs[first_name]['date'] != today_date
-                    employee_logs[first_name] = {'date': today_date, 'last_scan': current_time}
+                    # Update last scan time
+                    employee_logs[first_name]['last_scan'] = current_time
 
-                # Determine the status
-                if first_scan:
-                    status = f"Clock In ({calculate_status(current_time.time())})"
+                    if employee_logs[first_name]['date'] == today_date:
+                        # If clock-out hasn't been recorded, add it
+                        if 'clock_out' not in employee_logs[first_name]:
+                            employee_logs[first_name]['clock_out'] = current_time
+                            status = "Clock Out"
+                        else:
+                            # Update clock-out time if it already exists
+                            employee_logs[first_name]['clock_out'] = current_time
+                            print(f"Updated clock-out for {first_name} {last_name} at {current_time.strftime('%H:%M:%S')}.")
+                            return
+                    else:
+                        # New day, reset logs and clock-in
+                        employee_logs[first_name] = {
+                            'date': today_date,
+                            'clock_in': current_time,
+                            'last_scan': current_time
+                        }
+                        status = f"Clock In ({calculate_status(current_time.time())})"
                 else:
-                    status = "Clock Out"
+                    # First scan of the day
+                    employee_logs[first_name] = {
+                        'date': today_date,
+                        'clock_in': current_time,
+                        'last_scan': current_time
+                    }
+                    status = f"Clock In ({calculate_status(current_time.time())})"
 
-                # Log the employee's clock-in or clock-out
+                # Log the entry to the CSV
                 write_to_csv(first_name, last_name, today_date, current_time.strftime("%H:%M:%S"), status)
             else:
                 face_match = False
@@ -147,6 +163,8 @@ def check_face(image):
             face_match = False
             matched_file = None
         print(f"Error during face check: {e}")
+
+
 
 
 # Main loop
