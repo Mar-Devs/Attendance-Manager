@@ -1,0 +1,33 @@
+import numpy as np
+
+embedding_file = "face_recognition_data.npz" #file created in embedding.py
+
+
+def read_and_sort_embeddings(embedding_file):  #read embeddings and sort them into vectors
+    try:
+        
+        data = np.load(embedding_file, allow_pickle=True) #loaded the file
+        embeddings = data['embeddings']
+        metadata = data['metadata']
+
+    
+        sorted_vectors = []
+        for i, embedding in enumerate(embeddings):   #vectors
+        
+            vector = np.array(embedding).flatten()
+            sorted_vectors.append(vector)
+
+            print(f"Embedding for {metadata[i]['filename']} sorted into vector.")
+
+        return sorted_vectors
+    except Exception as e:
+        print(f"Error reading or sorting embeddings: {e}")
+        return None
+    
+
+
+if __name__ == "__main__":
+    sorted_vectors = read_and_sort_embeddings(embedding_file)  
+
+    if sorted_vectors:
+        print(f"Successfully sorted {len(sorted_vectors)} embeddings into vectors.") #to make sure the embedding was successful
